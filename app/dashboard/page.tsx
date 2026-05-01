@@ -12,7 +12,7 @@ type Profil = {
 type Departement = {
   id: string
   nom: string
-  organismes: { nom: string }
+  organismes: { nom: string } | { nom: string }[] | null
 }
 
 export default function Dashboard() {
@@ -22,6 +22,12 @@ export default function Dashboard() {
   const [message, setMessage] = useState('')
   const router = useRouter()
   const supabase = createClient()
+
+  function getOrganismeNom(org: { nom: string } | { nom: string }[] | null): string {
+    if (!org) return ''
+    if (Array.isArray(org)) return org[0]?.nom || ''
+    return org.nom
+  }
 
   useEffect(() => {
     async function loadData() {
@@ -39,7 +45,7 @@ export default function Dashboard() {
       const { data: deps } = await supabase
         .from('departements')
         .select('id, nom, organismes(nom)')
-      setDepartements(deps || [])
+      setDepartements((deps as Departement[]) || [])
     }
     loadData()
   }, [])
@@ -99,7 +105,7 @@ export default function Dashboard() {
             <option value="">-- Sélectionner un département --</option>
             {departements.map(dep => (
               <option key={dep.id} value={dep.id}>
-                {dep.organismes?.nom} — {dep.nom}
+                {getOrganismeNom(dep.organismes)} — {dep.nom}
               </option>
             ))}
           </select>
@@ -127,7 +133,7 @@ export default function Dashboard() {
             {departements.map(dep => (
               <div key={dep.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <span className="text-sm text-gray-700">{dep.nom}</span>
-                <span className="text-xs text-gray-400">{dep.organismes?.nom}</span>
+                <span className="text-xs text-gray-400">{getOrganismeNom(dep.organismes)}</span>
               </div>
             ))}
           </div>
