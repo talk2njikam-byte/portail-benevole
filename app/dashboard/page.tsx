@@ -1,7 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link' // Import ajouté pour la navigation
 
 type Profil = {
   nom_complet: string
@@ -21,7 +22,6 @@ export default function Dashboard() {
   const [selectedDep, setSelectedDep] = useState('')
   const [message, setMessage] = useState('')
   const router = useRouter()
-  const supabase = createClient()
 
   function getOrganismeNom(org: { nom: string } | { nom: string }[] | null): string {
     if (!org) return ''
@@ -48,7 +48,7 @@ export default function Dashboard() {
       setDepartements((deps as Departement[]) || [])
     }
     loadData()
-  }, [])
+  }, [router])
 
   async function sauvegarderDepartement() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -76,6 +76,7 @@ export default function Dashboard() {
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-2xl mx-auto">
 
+        {/* --- EN-TÊTE --- */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-xl font-medium text-gray-900">
@@ -93,6 +94,22 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* --- BLOC SÉCURITÉ (NOUVEAU) --- */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-medium text-gray-700">Sécurité du compte</h2>
+              <p className="text-xs text-gray-400 mt-1">Configurez votre authentification à deux facteurs (2FA).</p>
+            </div>
+            <Link href="/dashboard/security">
+              <button className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors">
+                Gérer le 2FA
+              </button>
+            </Link>
+          </div>
+        </div>
+
+        {/* --- CHOIX DÉPARTEMENT --- */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
           <h2 className="text-sm font-medium text-gray-700 mb-4">
             Choisir mon département
@@ -125,6 +142,7 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* --- LISTE DES DÉPARTEMENTS --- */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <h2 className="text-sm font-medium text-gray-700 mb-3">
             Départements disponibles

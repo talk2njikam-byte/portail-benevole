@@ -1,10 +1,9 @@
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 
-export function createClient() {
-  console.log('URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-  console.log('KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 20))
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
+// On récupère les variables d'environnement définies dans ton fichier .env.local
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// On crée le client Supabase
+// Le mot "export" devant est CRUCIAL pour que les autres fichiers puissent l'utiliser
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
