@@ -1,17 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   const { token } = await request.json()
 
-  const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+  // On récupère la clé secrète depuis les variables d'environnement
+  const secretKey = process.env.TURNSTILE_SECRET_KEY
+
+  const formData = new FormData()
+  formData.append('secret', secretKey!)
+  formData.append('response', token)
+
+  const result = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      secret: process.env.TURNSTILE_SECRET_KEY,
-      response: token
-    })
+    body: formData,
   })
 
-  const data = await response.json()
-  return NextResponse.json({ success: data.success })
+  const outcome = await result.json()
+
+  if (outcome.success) {
+    return NextResponse.json({ success: true })
+  } else {
+    return NextResponse.json({ success: false, error: outcome['error-codes'] })
+  }
 }

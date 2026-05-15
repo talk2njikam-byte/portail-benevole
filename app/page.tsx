@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
@@ -13,6 +13,19 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  // On vérifie si la clé est bien chargée dans la console du navigateur
+  console.log("DEBUG - Clé Turnstile actuelle :", process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+
+  // Force le rendu du Turnstile quand on bascule sur l'inscription
+  useEffect(() => {
+    if (isSignUp && (window as any).turnstile) {
+      // On laisse un tout petit délai pour que la div soit bien dans le DOM
+      setTimeout(() => {
+        (window as any).turnstile.render('.cf-turnstile');
+      }, 100);
+    }
+  }, [isSignUp]);
 
   async function handleAuth() {
     setLoading(true)
@@ -58,7 +71,12 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+      {/* Chargement du script Cloudflare */}
+      <Script 
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js" 
+        strategy="afterInteractive"
+      />
+      
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 w-full max-w-md">
         <h1 className="text-2xl font-medium text-gray-900 mb-2">Portail Bénévolat</h1>
         <p className="text-gray-500 text-sm mb-8">
@@ -99,8 +117,9 @@ export default function Home() {
           />
         </div>
 
+        {/* Zone du CAPTCHA */}
         {isSignUp && (
-          <div className="mb-4">
+          <div className="mb-4 flex justify-center">
             <div
               className="cf-turnstile"
               data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
@@ -123,7 +142,10 @@ export default function Home() {
         </button>
 
         <button
-          onClick={() => setIsSignUp(!isSignUp)}
+          onClick={() => {
+            setIsSignUp(!isSignUp);
+            setMessage('');
+          }}
           className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700"
         >
           {isSignUp ? 'Déjà un compte ? Se connecter' : "Pas de compte ? S'inscrire"}
