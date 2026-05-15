@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import Script from 'next/script'
 
 export default function Home() {
   const [email, setEmail] = useState('')
@@ -18,38 +19,35 @@ export default function Home() {
     setMessage('')
 
     if (isSignUp) {
-      // ÉTAPE 1 : créer le compte auth
-      const { data, error: authError } = await supabase.auth.signUp({ email, password })
-      
-      if (authError) {
-        setMessage('Erreur auth: ' + authError.message)
+      const captchaToken = (window as any).turnstile?.getResponse()
+      if (!captchaToken) {
+        setMessage('Veuillez compléter le CAPTCHA')
         setLoading(false)
         return
       }
 
-      console.log('User créé:', data.user)
+      const verif = await fetch('/api/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: captchaToken })
+      })
+      const verifData = await verif.json()
+      if (!verifData.success) {
+        setMessage('CAPTCHA invalide, veuillez réessayer')
+        setLoading(false)
+        return
+      }
 
-      // ÉTAPE 2 : créer le profil
+      const { data, error: authError } = await supabase.auth.signUp({ email, password })
+      if (authError) { setMessage('Erreur: ' + authError.message); setLoading(false); return }
       if (data.user) {
         const { error: profilError } = await supabase
           .from('profils')
-          .insert({
-            id: data.user.id,
-            nom_complet: nom,
-            role: 'benevole'
-          })
-
-        if (profilError) {
-          // Affiche l'erreur exacte
-          setMessage('Erreur profil: ' + profilError.message + ' | Code: ' + profilError.code + ' | Détail: ' + profilError.details)
-          setLoading(false)
-          return
-        }
-
+          .insert({ id: data.user.id, nom_complet: nom, role: 'benevole' })
+        if (profilError) { setMessage('Erreur profil: ' + profilError.message); setLoading(false); return }
         setMessage('Compte créé avec succès !')
         setTimeout(() => router.push('/dashboard'), 1000)
       }
-
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setMessage('Erreur connexion: ' + error.message); setLoading(false); return }
@@ -60,6 +58,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 w-full max-w-md">
         <h1 className="text-2xl font-medium text-gray-900 mb-2">Portail Bénévolat</h1>
         <p className="text-gray-500 text-sm mb-8">
@@ -100,8 +99,17 @@ export default function Home() {
           />
         </div>
 
+        {isSignUp && (
+          <div className="mb-4">
+            <div
+              className="cf-turnstile"
+              data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            ></div>
+          </div>
+        )}
+
         {message && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-700 break-all">
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700">
             {message}
           </div>
         )}
